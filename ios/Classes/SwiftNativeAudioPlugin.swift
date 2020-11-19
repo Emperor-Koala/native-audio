@@ -50,10 +50,10 @@ public class SwiftNativeAudioPlugin: NSObject, FlutterPlugin {
         case "play":
             let arguments = call.arguments as! NSDictionary
             let url =  arguments["url"] as! String
-            let title =  arguments["title"] as! String
-            let artist =  arguments["artist"] as! String
-            let album =  arguments["album"] as! String
-            let imageUrl =  arguments["imageUrl"] as! String
+            let title =  arguments["title"] as? String
+            let artist =  arguments["artist"] as? String
+            let album =  arguments["album"] as? String
+            let imageUrl =  arguments["imageUrl"] as? String
             let startAutomatically =  arguments["startAutomatically"] as! Bool
             let startFromMillis =  arguments["startFromMillis"] as! Int
             
@@ -154,10 +154,10 @@ public class SwiftNativeAudioPlugin: NSObject, FlutterPlugin {
     
     private func play(
         url: String,
-        title: String,
-        artist: String,
-        album: String,
-        imageUrl: String,
+        title: String?,
+        artist: String?,
+        album: String?,
+        imageUrl: String?,
         startAutomatically: Bool,
         startFromMillis: Int
     ) {
@@ -347,21 +347,23 @@ public class SwiftNativeAudioPlugin: NSObject, FlutterPlugin {
         }
     }
     
-    private func updateNowPlayingInfoCenter(title: String, artist: String, album: String, imageUrl: String) {
+    private func updateNowPlayingInfoCenter(title: String?, artist: String?, album: String?, imageUrl: String?) {
         MPNowPlayingInfoCenter.default().nowPlayingInfo = [
             MPMediaItemPropertyTitle: title,
             MPMediaItemPropertyAlbumTitle: album,
             MPMediaItemPropertyArtist: artist,
         ]
         
-        if let data = try? Data(contentsOf: URL(string: imageUrl)!) {
-            let artwork: UIImage? = UIImage(data: data)!
-            
-            if #available(iOS 10.0, *) {
-                if let artwork = artwork {
-                    MPNowPlayingInfoCenter.default().nowPlayingInfo?[MPMediaItemPropertyArtwork] = MPMediaItemArtwork.init(boundsSize: artwork.size, requestHandler: { (size) -> UIImage in
-                        return artwork
-                    })
+        if let imgUrl = imageUrl {
+            if let data = try? Data(contentsOf: URL(string: imageUrl)!) {
+                let artwork: UIImage? = UIImage(data: data)!
+                
+                if #available(iOS 10.0, *) {
+                    if let artwork = artwork {
+                        MPNowPlayingInfoCenter.default().nowPlayingInfo?[MPMediaItemPropertyArtwork] = MPMediaItemArtwork.init(boundsSize: artwork.size, requestHandler: { (size) -> UIImage in
+                            return artwork
+                        })
+                    }
                 }
             }
         }
