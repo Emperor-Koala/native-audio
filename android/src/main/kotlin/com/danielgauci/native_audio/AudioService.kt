@@ -6,6 +6,7 @@ import android.app.*
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.graphics.drawable.Drawable
 import android.media.AudioManager
@@ -15,6 +16,7 @@ import android.os.IBinder
 import android.support.v4.media.MediaMetadataCompat.*
 import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
+import android.util.Base64
 import android.view.KeyEvent
 import android.view.KeyEvent.*
 import androidx.annotation.ColorInt
@@ -224,7 +226,8 @@ class AudioService : Service() {
             album: String? = null,
             imageUrl: String? = null,
             startAutomatically: Boolean = true,
-            startFromMillis: Long = 0L
+            startFromMillis: Long = 0L,
+            imageBytes: String? = null
     ) {
         requestFocus()
 
@@ -238,7 +241,8 @@ class AudioService : Service() {
                 title = title ?: "",
                 artist = artist ?: "",
                 album = album ?: "",
-                imageUrl = imageUrl ?: ""
+                imageUrl = imageUrl ?: "",
+                imageBytes = imageBytes ?: ""
         )
     }
 
@@ -387,13 +391,39 @@ class AudioService : Service() {
         }
     }
 
-    private fun showNotification(title: String, artist: String, album: String, imageUrl: String? = null) {
-        if (imageUrl.isNullOrBlank()) {
-            // No image is set, show notification
-            updateNotificationBuilder(title, artist, album)
-            startForeground(NOTIFICATION_ID, notificationBuilder.build())
-            isNotificationShown = true
-        } else {
+    private fun showNotification(title: String, artist: String, album: String, imageUrl: String? = null, imageBytes: String? = null) {
+        if (!imageBytes.isNullOrBlank()) {
+            val decodedString: ByteArray = Base64.decode(imageBytes, Base64.DEFAULT)
+            val decodedByte: Bitmap = BitmapFactory.decodeByteArray(decodedString, 0, decodedString.size)
+
+            Palette.from(decodedByte).generate { pallete ->
+                pallete?.let {
+                    // Palette generated, show notification with bitmap and palette
+                    val color = it.getVibrantColor(Color.WHITE)
+                    updateNotificationBuilder(
+                            title = title,
+                            artist = artist,
+                            album = album,
+                            notificationColor = color,
+                            image = decodedByte
+                    )
+
+                    startForeground(NOTIFICATION_ID, notificationBuilder.build())
+                    isNotificationShown = true
+                } ?: run {
+                    // Failed to generate palette, show notification with bitmap
+                    updateNotificationBuilder(
+                            title = title,
+                            artist = artist,
+                            album = album,
+                            image = decodedByte
+                    )
+
+                    startForeground(NOTIFICATION_ID, notificationBuilder.build())
+                    isNotificationShown = true
+                }
+            }
+        } else if (!imageUrl.isNullOrBlank())  {
             // Get image show notification
             Glide.with(this)
                     .asBitmap()
@@ -438,6 +468,11 @@ class AudioService : Service() {
                             isNotificationShown = true
                         }
                     })
+        } else {
+            // No image is set, show notification
+            updateNotificationBuilder(title, artist, album)
+            startForeground(NOTIFICATION_ID, notificationBuilder.build())
+            isNotificationShown = true
         }
     }
 

@@ -31,6 +31,7 @@ class NativeAudioPlugin(
         private const val NATIVE_METHOD_PLAY_ARG_IMAGE_URL = "imageUrl"
         private const val NATIVE_METHOD_PLAY_START_AUTOMATICALLY = "startAutomatically"
         private const val NATIVE_METHOD_PLAY_START_FROM_MILLIS = "startFromMillis"
+        private const val NATIVE_METHOD_PLAY_ARG_IMAGE_BYTES = "imageBytes"
         private const val NATIVE_METHOD_RESUME = "resume"
         private const val NATIVE_METHOD_PAUSE = "pause"
         private const val NATIVE_METHOD_STOP = "stop"
@@ -91,6 +92,7 @@ class NativeAudioPlugin(
                         val imageUrl = call.argument<String>(NATIVE_METHOD_PLAY_ARG_IMAGE_URL)
                         val startAutomatically = call.argument<Boolean>(NATIVE_METHOD_PLAY_START_AUTOMATICALLY)
                         val startFromMillis = call.argument<Int>(NATIVE_METHOD_PLAY_START_FROM_MILLIS)
+                        val imageBytes = call.argument<String>(NATIVE_METHOD_PLAY_ARG_IMAGE_BYTES)
 
                         // Call service
                         withService {
@@ -101,7 +103,8 @@ class NativeAudioPlugin(
                                     album = album,
                                     imageUrl = imageUrl,
                                     startAutomatically = startAutomatically ?: true,
-                                    startFromMillis = startFromMillis?.toLong() ?: 0L
+                                    startFromMillis = startFromMillis?.toLong() ?: 0L,
+                                    imageBytes = imageBytes
                             )
                         }
                     }
