@@ -56,8 +56,9 @@ public class SwiftNativeAudioPlugin: NSObject, FlutterPlugin {
             let imageUrl =  arguments["imageUrl"] as? String
             let startAutomatically =  arguments["startAutomatically"] as! Bool
             let startFromMillis =  arguments["startFromMillis"] as! Int
+            let local = arguments["isLocal"] as! Bool
             
-            self.play(url: url, title: title, artist: artist, album: album, imageUrl: imageUrl, startAutomatically: startAutomatically, startFromMillis: startFromMillis)
+            self.play(url: url, title: title, artist: artist, album: album, imageUrl: imageUrl, startAutomatically: startAutomatically, startFromMillis: startFromMillis, local: local)
             
         case "resume":
             self.resume()
@@ -99,6 +100,8 @@ public class SwiftNativeAudioPlugin: NSObject, FlutterPlugin {
                                context: context)
             return
         }
+        
+        print("observeValue called")
         
         if keyPath == #keyPath(AVPlayerItem.status) {
             let status: AVPlayerItem.Status
@@ -145,6 +148,7 @@ public class SwiftNativeAudioPlugin: NSObject, FlutterPlugin {
                 
             case .failed:
                 log(message: "Failed AVPlayerItem state.")
+                print(avPlayerItem.error)
             case .unknown:
                 log(message: "Unknown AVPlayerItem state.")
             default: ()
@@ -159,7 +163,8 @@ public class SwiftNativeAudioPlugin: NSObject, FlutterPlugin {
         album: String?,
         imageUrl: String?,
         startAutomatically: Bool,
-        startFromMillis: Int
+        startFromMillis: Int,
+        local: Bool
     ) {
         // Pause any ongoing playback and clean up resources. stop() is not called since we do not want to notify the Flutter channel
         if (avPlayer != nil) {avPlayer.pause()}
@@ -169,8 +174,15 @@ public class SwiftNativeAudioPlugin: NSObject, FlutterPlugin {
         updateNowPlayingInfoCenter(title: title, artist: artist, album: album, imageUrl: imageUrl)
         
         // Setup player item
-        guard let audioUrl = URL.init(string: url) else { return }
-        avPlayerItem = AVPlayerItem.init(url: audioUrl)
+        if !local {
+            guard let audioUrl = URL.init(string: url) else { return }
+            avPlayerItem = AVPlayerItem.init(url: audioUrl)
+        } else {
+            guard let documentsDir = NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainMask, true).first else { return }
+            
+            let audioUrl = URL.init(fileURLWithPath: String(format: "%@/%@", documentsDir, url))
+            avPlayerItem = AVPlayerItem.init(url: audioUrl)
+        }
         
         // Observe player item status
         avPlayerItem.addObserver(self, forKeyPath: #keyPath(AVPlayerItem.status), options: [.old, .new], context: &playerItemContext)
@@ -199,11 +211,14 @@ public class SwiftNativeAudioPlugin: NSObject, FlutterPlugin {
         
         // Set audio session as active to play in background
         do {
+            print("setting up background")
             try AVAudioSession.sharedInstance().setCategory(AVAudioSession.Category.playback)
             try AVAudioSession.sharedInstance().setActive(true)
         } catch {
             print("Failed to set AVAudioSession to active")
         }
+        
+        print("background setup complete")
         
         // Add progress listener
         let interval = CMTime(seconds: 1, preferredTimescale: CMTimeScale(NSEC_PER_SEC))
@@ -215,6 +230,8 @@ public class SwiftNativeAudioPlugin: NSObject, FlutterPlugin {
             
             self?.progressChanged(timeInMillis: Int(currentMillis))
         }
+        
+        print("function complete")
     }
     
     private func resume(notifyFlutterChannel: Bool = true) {
@@ -348,14 +365,15 @@ public class SwiftNativeAudioPlugin: NSObject, FlutterPlugin {
     }
     
     private func updateNowPlayingInfoCenter(title: String?, artist: String?, album: String?, imageUrl: String?) {
+        
         MPNowPlayingInfoCenter.default().nowPlayingInfo = [
-            MPMediaItemPropertyTitle: title,
-            MPMediaItemPropertyAlbumTitle: album,
-            MPMediaItemPropertyArtist: artist,
+            MPMediaItemPropertyTitle: title as Any,
+            MPMediaItemPropertyAlbumTitle: album as Any,
+            MPMediaItemPropertyArtist: artist as Any,
         ]
         
-        if imageUrl != nil {
-            if let data = try? Data(contentsOf: URL(string: imageUrl)!) {
+        if imageUrl != nil && !(imageUrl?.isEmpty ?? true) {
+            if let data = try? Data(contentsOf: URL(string: imageUrl!)!) {
                 let artwork: UIImage? = UIImage(data: data)!
                 
                 if #available(iOS 10.0, *) {

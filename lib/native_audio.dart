@@ -12,6 +12,7 @@ class NativeAudio {
   static const _nativeMethodPlayArgImageUrl = "imageUrl";
   static const _nativeMethodPlayArgStartAutomatically = "startAutomatically";
   static const _nativeMethodPlayArgStartFromMillis = "startFromMillis";
+  static const _nativeMethodPlayArgLocal = "local";
   static const _nativeMethodResume = "resume";
   static const _nativeMethodPause = "pause";
   static const _nativeMethodStop = "stop";
@@ -51,6 +52,7 @@ class NativeAudio {
     String imageUrl,
     bool startAutomatically = true,
     Duration startFrom,
+    bool isLocal = false,
   }) {
     _registerMethodCallHandler();
     _invokeNativeMethod(
@@ -63,7 +65,8 @@ class NativeAudio {
         _nativeMethodPlayArgImageUrl: imageUrl,
         _nativeMethodPlayArgStartAutomatically: startAutomatically,
         _nativeMethodPlayArgStartFromMillis:
-            startFrom != null ? startFrom.inMilliseconds : 0
+            startFrom != null ? startFrom.inMilliseconds : 0,
+        _nativeMethodPlayArgLocal: isLocal,
       },
     );
   }
