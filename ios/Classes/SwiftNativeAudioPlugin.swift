@@ -101,8 +101,6 @@ public class SwiftNativeAudioPlugin: NSObject, FlutterPlugin {
             return
         }
         
-        print("observeValue called")
-        
         if keyPath == #keyPath(AVPlayerItem.status) {
             let status: AVPlayerItem.Status
             if let statusNumber = change?[.newKey] as? NSNumber {
@@ -148,7 +146,6 @@ public class SwiftNativeAudioPlugin: NSObject, FlutterPlugin {
                 
             case .failed:
                 log(message: "Failed AVPlayerItem state.")
-                print(avPlayerItem.error)
             case .unknown:
                 log(message: "Unknown AVPlayerItem state.")
             default: ()
@@ -178,9 +175,7 @@ public class SwiftNativeAudioPlugin: NSObject, FlutterPlugin {
             guard let audioUrl = URL.init(string: url) else { return }
             avPlayerItem = AVPlayerItem.init(url: audioUrl)
         } else {
-            guard let documentsDir = NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainMask, true).first else { return }
-            
-            let audioUrl = URL.init(fileURLWithPath: String(format: "%@/%@", documentsDir, url))
+            let audioUrl = URL.init(fileURLWithPath: url)
             avPlayerItem = AVPlayerItem.init(url: audioUrl)
         }
         
@@ -211,14 +206,11 @@ public class SwiftNativeAudioPlugin: NSObject, FlutterPlugin {
         
         // Set audio session as active to play in background
         do {
-            print("setting up background")
             try AVAudioSession.sharedInstance().setCategory(AVAudioSession.Category.playback)
             try AVAudioSession.sharedInstance().setActive(true)
         } catch {
             print("Failed to set AVAudioSession to active")
         }
-        
-        print("background setup complete")
         
         // Add progress listener
         let interval = CMTime(seconds: 1, preferredTimescale: CMTimeScale(NSEC_PER_SEC))
@@ -231,7 +223,6 @@ public class SwiftNativeAudioPlugin: NSObject, FlutterPlugin {
             self?.progressChanged(timeInMillis: Int(currentMillis))
         }
         
-        print("function complete")
     }
     
     private func resume(notifyFlutterChannel: Bool = true) {

@@ -12,7 +12,7 @@ class NativeAudio {
   static const _nativeMethodPlayArgImageUrl = "imageUrl";
   static const _nativeMethodPlayArgStartAutomatically = "startAutomatically";
   static const _nativeMethodPlayArgStartFromMillis = "startFromMillis";
-  static const _nativeMethodPlayArgLocal = "local";
+  static const _nativeMethodPlayArgLocal = "isLocal";
   static const _nativeMethodResume = "resume";
   static const _nativeMethodPause = "pause";
   static const _nativeMethodStop = "stop";
