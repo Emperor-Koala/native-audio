@@ -354,7 +354,7 @@ public class SwiftNativeAudioPlugin: NSObject, FlutterPlugin {
             MPMediaItemPropertyArtist: artist,
         ]
         
-        if let imgUrl = imageUrl {
+        if imageUrl != nil {
             if let data = try? Data(contentsOf: URL(string: imageUrl)!) {
                 let artwork: UIImage? = UIImage(data: data)!
                 
