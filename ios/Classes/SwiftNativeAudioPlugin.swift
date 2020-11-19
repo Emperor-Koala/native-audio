@@ -57,8 +57,9 @@ public class SwiftNativeAudioPlugin: NSObject, FlutterPlugin {
             let startAutomatically =  arguments["startAutomatically"] as! Bool
             let startFromMillis =  arguments["startFromMillis"] as! Int
             let local = arguments["isLocal"] as! Bool
+            let imageBytes = arguments["imageBytes"] as? String
             
-            self.play(url: url, title: title, artist: artist, album: album, imageUrl: imageUrl, startAutomatically: startAutomatically, startFromMillis: startFromMillis, local: local)
+            self.play(url: url, title: title, artist: artist, album: album, imageUrl: imageUrl, startAutomatically: startAutomatically, startFromMillis: startFromMillis, local: local, imageBytes: imageBytes)
             
         case "resume":
             self.resume()
@@ -161,14 +162,15 @@ public class SwiftNativeAudioPlugin: NSObject, FlutterPlugin {
         imageUrl: String?,
         startAutomatically: Bool,
         startFromMillis: Int,
-        local: Bool
+        local: Bool,
+        imageBytes: String?
     ) {
         // Pause any ongoing playback and clean up resources. stop() is not called since we do not want to notify the Flutter channel
         if (avPlayer != nil) {avPlayer.pause()}
         cleanUp()
         
         // Update control center
-        updateNowPlayingInfoCenter(title: title, artist: artist, album: album, imageUrl: imageUrl)
+        updateNowPlayingInfoCenter(title: title, artist: artist, album: album, imageUrl: imageUrl, imageBytes: imageBytes)
         
         // Setup player item
         if !local {
@@ -355,15 +357,31 @@ public class SwiftNativeAudioPlugin: NSObject, FlutterPlugin {
         }
     }
     
-    private func updateNowPlayingInfoCenter(title: String?, artist: String?, album: String?, imageUrl: String?) {
+    private func updateNowPlayingInfoCenter(title: String?, artist: String?, album: String?, imageUrl: String?, imageBytes: String?) {
         
         MPNowPlayingInfoCenter.default().nowPlayingInfo = [
             MPMediaItemPropertyTitle: title as Any,
             MPMediaItemPropertyAlbumTitle: album as Any,
             MPMediaItemPropertyArtist: artist as Any,
         ]
-        
-        if imageUrl != nil && !(imageUrl?.isEmpty ?? true) {
+        if imageBytes != nil && !(imageBytes?.isEmpty ?? true) {
+            
+            let b64 = imageBytes!.replacingOccurrences(of: "-", with: "+").replacingOccurrences(of: "_", with: "/")
+            if let data = Data(base64Encoded: b64) {
+                
+                let artwork: UIImage? = UIImage(data: data)!
+                
+                if #available(iOS 10.0, *) {
+                    if let artwork = artwork {
+                        MPNowPlayingInfoCenter.default().nowPlayingInfo?[MPMediaItemPropertyArtwork] = MPMediaItemArtwork.init(boundsSize: artwork.size, requestHandler: { (size) -> UIImage in
+                            return artwork
+                        })
+                    }
+                }
+                
+            }
+            
+        } else if imageUrl != nil && !(imageUrl?.isEmpty ?? true) {
             if let data = try? Data(contentsOf: URL(string: imageUrl!)!) {
                 let artwork: UIImage? = UIImage(data: data)!
                 
