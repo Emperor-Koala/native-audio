@@ -316,6 +316,12 @@ public class SwiftNativeAudioPlugin: NSObject, FlutterPlugin {
     private func setSkipTime(forwardMillis: Int, backwardMillis: Int) {
         skipForwardTimeInMillis = forwardMillis
         skipBackwardTimeInMillis = backwardMillis
+        updateSkipControlIntervals(forwardIntervalSeconds: NSNumber.init(value: forwardMillis/1000), backwardsIntervalSeconds: NSNumber.init(value: backwardMillis/1000))
+    }
+    
+    private func updateSkipControlIntervals(forwardIntervalSeconds: NSNumber, backwardsIntervalSeconds: NSNumber) {
+        MPRemoteCommandCenter.shared().skipForwardCommand.preferredIntervals = [forwardIntervalSeconds]
+        MPRemoteCommandCenter.shared().skipBackwardCommand.preferredIntervals = [backwardsIntervalSeconds]
     }
     
     private func setupRemoteTransportControls() {
@@ -334,14 +340,17 @@ public class SwiftNativeAudioPlugin: NSObject, FlutterPlugin {
             return.success
         }
         
-        // Disable next/previous track
-        commandCenter.nextTrackCommand.addTarget { [unowned self] event in
+        // skip forward
+        commandCenter.skipForwardCommand.addTarget { [unowned self] event in
             return self.skipForward() ? MPRemoteCommandHandlerStatus.success : MPRemoteCommandHandlerStatus.commandFailed
         }
         
-        commandCenter.previousTrackCommand.addTarget { [unowned self] event in
+        // skip backward
+        commandCenter.skipBackwardCommand.addTarget { [unowned self] event in
             return self.skipBackward() ? MPRemoteCommandHandlerStatus.success : MPRemoteCommandHandlerStatus.commandFailed
         }
+        
+        updateSkipControlIntervals(forwardIntervalSeconds: NSNumber.init(value: skipForwardTimeInMillis/1000), backwardsIntervalSeconds: NSNumber.init(value: skipBackwardTimeInMillis/1000))
         
         if #available(iOS 9.1, *) {
             commandCenter.changePlaybackPositionCommand.isEnabled = true
